@@ -1,35 +1,27 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { Toaster } from 'react-hot-toast'
-import App from './App.tsx'
-import './index.css'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { PrivyProvider } from '@privy-io/react-auth';
+import App from './App';
+import './index.css';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Toaster 
-      position="top-right"
-      toastOptions={{
-        duration: 4000,
-        style: {
-          background: '#0f172a',
-          color: '#fff',
-          borderRadius: '12px',
-          border: '1px solid #00cc6a',
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <PrivyProvider
+      appId="cmlryv7zk04ox0cjv1hfm2dax" // Sua API Key atualizada
+      config={{
+        embeddedWallets: {
+          createOnLogin: 'users-without-wallets',
+          noPromptOnSignature: false,
         },
-        success: {
-          iconTheme: {
-            primary: '#00cc6a',
-            secondary: '#fff',
-          },
+        appearance: {
+          theme: 'light',
+          accentColor: '#00cc6a',
+          showWalletLoginFirst: false,
         },
-        error: {
-          iconTheme: {
-            primary: '#ef4444',
-            secondary: '#fff',
-          },
-        },
+        loginMethods: ['discord', 'email', 'google'],
       }}
-    />
-    <App />
-  </StrictMode>,
-)
+    >
+      <App />
+    </PrivyProvider>
+  </React.StrictMode>,
+);
