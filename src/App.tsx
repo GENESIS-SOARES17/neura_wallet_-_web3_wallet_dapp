@@ -24,11 +24,11 @@ function App() {
   const [amount, setAmount] = useState("");
   const [txLoading, setTxLoading] = useState(false);
 
-  // Filtra para usar a carteira embutida compatível
+  // Seleciona a carteira correta (ignora Coinbase Smart Wallet se houver conflito)
   const activeWallet = wallets.find((w) => w.walletClientType !== 'coinbase_wallet') || wallets[0];
   const walletAddress = user?.wallet?.address || activeWallet?.address;
 
-  // 1. BUSCA DE PREÇOS (Binance API)
+  // 1. BUSCA DE PREÇOS (BINANCE API)
   useEffect(() => {
     const fetchPrices = async () => {
       try {
@@ -47,7 +47,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // 2. BUSCA DE SALDO (Otimizada para Vercel/CORS)
+  // 2. BUSCA DE SALDO (OTIMIZADA PARA VERCEL)
   useEffect(() => {
     async function getBalance() {
       if (authenticated && walletAddress) {
@@ -55,7 +55,7 @@ function App() {
           const client = createPublicClient({ 
             chain: neuraTestnet, 
             transport: http("https://rpc.ankr.com/neura_testnet", {
-              fetchOptions: { mode: 'cors' } // Essencial para evitar bloqueios na Vercel
+              fetchOptions: { mode: 'cors' } // Evita bloqueio de segurança na Vercel
             }) 
           });
           const b = await client.getBalance({ address: walletAddress as `0x${string}` });
@@ -98,20 +98,20 @@ function App() {
 
   if (!authenticated) {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <h1 style={{ fontSize: '4.5rem', fontWeight: '900', color: '#0f172a', margin: 0 }}>NEURA WALLET</h1>
-        <p style={{ color: '#64748b', letterSpacing: '4px', marginBottom: '40px' }}>SECURE GATEWAY</p>
-        <button onClick={login} style={{ padding: '18px 50px', borderRadius: '50px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Enter Dashboard</button>
+        <p style={{ color: '#64748b', letterSpacing: '4px', marginBottom: '40px' }}>SECURE BLOCKCHAIN GATEWAY</p>
+        <button onClick={login} style={{ padding: '18px 50px', borderRadius: '50px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Login with Discord</button>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '120px 40px 40px 40px', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', padding: '120px 40px 40px 40px', boxSizing: 'border-box', position: 'relative' }}>
       <Toaster position="top-right" />
       
-      {/* HEADER TICKER */}
-      <div style={{ position: 'fixed', top: '30px', left: 0, width: '100%', overflow: 'hidden', zIndex: 10 }}>
+      {/* HEADER TICKER (TELA TODA) */}
+      <div style={{ position: 'fixed', top: '30px', left: 0, width: '100%', overflow: 'hidden', zTarget: 10 }}>
         <motion.div animate={{ x: [0, -1200] }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} style={{ display: 'flex', gap: '80px' }}>
           {[...ASSETS, ...ASSETS].map((a, i) => (
             <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'baseline' }}>
@@ -124,7 +124,7 @@ function App() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 280px', gap: '30px', maxWidth: '1600px', margin: '0 auto' }}>
         
-        {/* LEFT: WATCHLIST */}
+        {/* ESQUERDA: WATCHLIST */}
         <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', padding: '25px', borderRadius: '30px', border: '1px solid #fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
             <TrendingUp size={18} /> <b style={{fontSize: '13px'}}>WATCHLIST</b>
@@ -137,13 +137,14 @@ function App() {
           ))}
         </div>
 
-        {/* CENTER: DASHBOARD */}
+        {/* CENTRO: CONTEÚDO PRINCIPAL */}
         <div style={{ background: '#fff', padding: '50px', borderRadius: '50px', boxShadow: '0 20px 60px rgba(0,0,0,0.05)', textAlign: 'center' }}>
           <p style={{ color: '#64748b', fontSize: '11px', fontWeight: 'bold' }}>AVAILABLE BALANCE</p>
           <h2 style={{ fontSize: '5rem', margin: '10px 0', fontWeight: '900' }}>
             {balance !== "---" ? Number(balance).toFixed(4) : "0.0000"} <span style={{fontSize: '24px', color: '#00cc6a'}}>ANKR</span>
           </h2>
           
+          {/* GRÁFICO */}
           <div style={{ height: '120px', width: '100%', minWidth: '300px', margin: '20px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -152,26 +153,31 @@ function App() {
             </ResponsiveContainer>
           </div>
 
+          {/* FORMULÁRIO DE ENVIO */}
           <div style={{ textAlign: 'left', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '25px' }}>
             <p style={{fontSize: '11px', fontWeight: 'bold', marginBottom: '15px'}}><Send size={14} /> QUICK SEND</p>
             <div style={{ display: 'flex', gap: '10px' }}>
               <input placeholder="0x..." value={recipient} onChange={e => setRecipient(e.target.value)} style={{ flex: 2, padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-              <input placeholder="Amt" type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1' }} />
+              <input placeholder="Amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1' }} />
               <button onClick={handleTransfer} disabled={txLoading} style={{ padding: '0 20px', borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Send</button>
             </div>
           </div>
 
+          {/* ENDEREÇO DA CONTA */}
           <div style={{ background: '#0f172a', padding: '15px', borderRadius: '20px', textAlign: 'left' }}>
-            <span style={{ color: '#00cc6a', fontSize: '9px', fontWeight: 'bold' }}>ACCOUNT</span>
+            <span style={{ color: '#00cc6a', fontSize: '9px', fontWeight: 'bold' }}>MY ACCOUNT ADDRESS</span>
             <code style={{ display: 'block', fontSize: '11px', color: '#fff', wordBreak: 'break-all', marginTop: '5px' }}>{walletAddress}</code>
           </div>
-          <button onClick={logout} style={{ marginTop: '20px', color: '#ef4444', background: 'none', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Log out</button>
+          
+          <button onClick={logout} style={{ marginTop: '20px', color: '#ef4444', background: 'none', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: '20px auto' }}>
+            <LogOut size={16} /> Sign Out
+          </button>
         </div>
 
-        {/* RIGHT: INSIGHTS */}
+        {/* DIREITA: INSIGHTS */}
         <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', padding: '25px', borderRadius: '30px', border: '1px solid #fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-            <Zap size={18} color="#00cc6a" /> <b style={{fontSize: '13px'}}>INSIGHTS</b>
+            <Zap size={18} color="#00cc6a" /> <b style={{fontSize: '13px'}}>NEURA INSIGHTS</b>
           </div>
           {INSIGHTS.map((info, i) => (
             <div key={i} style={{ padding: '15px', background: '#fff', borderRadius: '15px', marginBottom: '12px', border: '1px solid #eef2f6' }}>
@@ -181,13 +187,13 @@ function App() {
         </div>
       </div>
 
-      {/* FOOTER BAR */}
+      {/* BARRA DE STATUS INFERIOR */}
       <div style={{ maxWidth: '1600px', margin: '30px auto 0 auto', background: '#0f172a', padding: '18px 30px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00cc6a' }}><ShieldCheck size={18} /> <b style={{fontSize: '12px'}}>SYSTEM ACTIVE:</b></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00cc6a' }}><ShieldCheck size={18} /> <b style={{fontSize: '12px'}}>SYSTEM STATUS:</b></div>
         <div style={{ display: 'flex', gap: '40px', color: '#94a3b8', fontSize: '11px' }}>
-          <span>● Neura Testnet</span>
-          <span>● RPC: Connected</span>
-          <span>● Mode: EOA Standard</span>
+          <span>● NETWORK: NEURA TESTNET</span>
+          <span>● RPC: CONNECTED (CORS ACTIVE)</span>
+          <span>● WALLET: EOA STANDARD</span>
         </div>
       </div>
     </div>
