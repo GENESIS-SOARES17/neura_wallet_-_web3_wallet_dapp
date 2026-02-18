@@ -9,15 +9,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       appId="cmlryv7zk04ox0cjv1hfm2dax"
       config={{
         embeddedWallets: {
-          // 'all-users' força o Privy a buscar uma carteira já existente no banco de dados deles
+          // ESSENCIAL: 'all-users' tenta recuperar a carteira vinculada ao seu ID Social
           createOnLogin: 'all-users', 
           noPromptOnSignature: true,
         },
-        loginMethods: ['discord'],
-        appearance: {
-          theme: 'dark',
-          accentColor: '#00cc6a',
-        },
+        loginMethods: ['discord', 'email'],
+        // Isso ajuda a manter a mesma sessão no navegador
+        embeddedWallets: {
+          createOnLogin: 'all-users',
+          requireUserPasswordOnCreate: false,
+        }
       }}
     >
       <App />
