@@ -8,11 +8,6 @@ import toast, { Toaster } from 'react-hot-toast';
 import { TrendingUp, Zap, ShieldCheck, LogOut, Send } from 'lucide-react';
 
 const ASSETS = ["ANKR", "BTC", "ETH", "SOL", "BNB", "XRP"];
-const INSIGHTS = [
-  { text: "Neura AI detected high volatility in ANKR tokens.", time: "2m ago" },
-  { text: "Neura Network operating with 99.9% uptime.", time: "1h ago" },
-  { text: "New Faucet successfully released for developers.", time: "3h ago" }
-];
 const chartData = [{v:2},{v:5},{v:3},{v:8},{v:6},{v:10},{v:9},{v:12}];
 
 function App() {
@@ -24,11 +19,11 @@ function App() {
   const [amount, setAmount] = useState("");
   const [txLoading, setTxLoading] = useState(false);
 
-  // Seleciona a carteira correta (ignora Coinbase Smart Wallet se houver conflito)
-  const activeWallet = wallets.find((w) => w.walletClientType !== 'coinbase_wallet') || wallets[0];
+  // PRIORIDADE: Carteira embutida do Privy (Embedded) vinculada ao Discord
+  const embeddedWallet = wallets.find((w) => w.walletClientType === 'privy');
+  const activeWallet = embeddedWallet || wallets[0];
   const walletAddress = user?.wallet?.address || activeWallet?.address;
 
-  // 1. BUSCA DE PREÇOS (BINANCE API)
   useEffect(() => {
     const fetchPrices = async () => {
       try {
@@ -40,29 +35,24 @@ function App() {
           if (ASSETS.includes(symbol)) priceMap[symbol] = parseFloat(item.price).toLocaleString();
         });
         setPrices(priceMap);
-      } catch (e) { console.error("Price fetch error:", e); }
+      } catch (e) { console.error(e); }
     };
     fetchPrices();
     const interval = setInterval(fetchPrices, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // 2. BUSCA DE SALDO (OTIMIZADA PARA VERCEL)
   useEffect(() => {
     async function getBalance() {
       if (authenticated && walletAddress) {
         try {
           const client = createPublicClient({ 
             chain: neuraTestnet, 
-            transport: http("https://rpc.ankr.com/neura_testnet", {
-              fetchOptions: { mode: 'cors' } // Evita bloqueio de segurança na Vercel
-            }) 
+            transport: http("https://rpc.ankr.com/neura_testnet", { fetchOptions: { mode: 'cors' } }) 
           });
           const b = await client.getBalance({ address: walletAddress as `0x${string}` });
           setBalance(formatEther(b));
-        } catch (e) { 
-          console.error("Balance fetch error:", e); 
-        }
+        } catch (e) { console.error(e); }
       }
     }
     getBalance();
@@ -70,7 +60,6 @@ function App() {
     return () => clearInterval(id);
   }, [authenticated, walletAddress]);
 
-  // 3. LÓGICA DE TRANSFERÊNCIA
   const handleTransfer = async () => {
     if (!recipient || !amount) return toast.error("Provide address and amount");
     if (!activeWallet) return toast.error("Wallet not ready");
@@ -81,119 +70,79 @@ function App() {
       const provider = await activeWallet.getEthereumProvider();
       const hash = await provider.request({
         method: 'eth_sendTransaction',
-        params: [{ 
-          from: walletAddress, 
-          to: recipient, 
-          value: '0x' + parseEther(amount).toString(16) 
-        }],
+        params: [{ from: walletAddress, to: recipient, value: '0x' + parseEther(amount).toString(16) }],
       });
       toast.success(`Sent! Hash: ${hash.substring(0, 8)}`, { id: tid });
       setAmount(""); setRecipient("");
-    } catch (e: any) { 
-      toast.error(e.message || "Transaction failed", { id: tid }); 
-    } finally { 
-      setTxLoading(false); 
-    }
+    } catch (e: any) { toast.error(e.message || "Failed", { id: tid }); }
+    finally { setTxLoading(false); }
   };
 
   if (!authenticated) {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '4.5rem', fontWeight: '900', color: '#0f172a', margin: 0 }}>NEURA WALLET</h1>
-        <p style={{ color: '#64748b', letterSpacing: '4px', marginBottom: '40px' }}>SECURE BLOCKCHAIN GATEWAY</p>
-        <button onClick={login} style={{ padding: '18px 50px', borderRadius: '50px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}>Login with Discord</button>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <h1 style={{ fontSize: '4.5rem', fontWeight: '900', color: '#0f172a' }}>NEURA WALLET</h1>
+        <button onClick={login} style={{ padding: '18px 50px', borderRadius: '50px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Login with Discord</button>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '120px 40px 40px 40px', boxSizing: 'border-box', position: 'relative' }}>
+    <div style={{ minHeight: '100vh', padding: '120px 40px' }}>
       <Toaster position="top-right" />
       
-      {/* HEADER TICKER (TELA TODA) */}
-      <div style={{ position: 'fixed', top: '30px', left: 0, width: '100%', overflow: 'hidden', zTarget: 10 }}>
+      {/* TICKER */}
+      <div style={{ position: 'fixed', top: '30px', left: 0, width: '100%', overflow: 'hidden' }}>
         <motion.div animate={{ x: [0, -1200] }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} style={{ display: 'flex', gap: '80px' }}>
           {[...ASSETS, ...ASSETS].map((a, i) => (
-            <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'baseline' }}>
-              <b style={{ fontSize: '1.4rem', color: a === 'ANKR' ? '#00cc6a' : '#1e293b' }}>{a}</b>
-              <span style={{ fontSize: '1.1rem', color: '#64748b' }}>${prices[a] || '---'}</span>
+            <div key={i} style={{ display: 'flex', gap: '12px' }}>
+              <b style={{ color: a === 'ANKR' ? '#00cc6a' : '#1e293b' }}>{a}</b>
+              <span>${prices[a] || '---'}</span>
             </div>
           ))}
         </motion.div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 280px', gap: '30px', maxWidth: '1600px', margin: '0 auto' }}>
-        
-        {/* ESQUERDA: WATCHLIST */}
-        <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', padding: '25px', borderRadius: '30px', border: '1px solid #fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-            <TrendingUp size={18} /> <b style={{fontSize: '13px'}}>WATCHLIST</b>
-          </div>
+        <div style={{ background: 'rgba(255,255,255,0.7)', padding: '25px', borderRadius: '30px' }}>
+          <TrendingUp size={18} /> <b>WATCHLIST</b>
           {ASSETS.map(asset => (
-            <div key={asset} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #eef2f6' }}>
-              <span style={{fontWeight: '600', color: '#475569'}}>{asset}</span>
-              <span style={{color: '#1e293b'}}>${prices[asset] || '0.00'}</span>
+            <div key={asset} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
+              <span>{asset}</span>
+              <b>${prices[asset] || '0.00'}</b>
             </div>
           ))}
         </div>
 
-        {/* CENTRO: CONTEÚDO PRINCIPAL */}
-        <div style={{ background: '#fff', padding: '50px', borderRadius: '50px', boxShadow: '0 20px 60px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-          <p style={{ color: '#64748b', fontSize: '11px', fontWeight: 'bold' }}>AVAILABLE BALANCE</p>
-          <h2 style={{ fontSize: '5rem', margin: '10px 0', fontWeight: '900' }}>
-            {balance !== "---" ? Number(balance).toFixed(4) : "0.0000"} <span style={{fontSize: '24px', color: '#00cc6a'}}>ANKR</span>
-          </h2>
+        <div style={{ background: '#fff', padding: '50px', borderRadius: '50px', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.05)' }}>
+          <p>AVAILABLE BALANCE</p>
+          <h2 style={{ fontSize: '4rem', fontWeight: '900' }}>{balance} <span style={{ color: '#00cc6a' }}>ANKR</span></h2>
           
-          {/* GRÁFICO */}
-          <div style={{ height: '120px', width: '100%', minWidth: '300px', margin: '20px 0' }}>
+          <div style={{ height: '100px', margin: '20px 0' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <Area type="monotone" dataKey="v" stroke="#00cc6a" fill="#00cc6a" fillOpacity={0.05} strokeWidth={3} />
-              </AreaChart>
+              <AreaChart data={chartData}><Area type="monotone" dataKey="v" stroke="#00cc6a" fill="#00cc6a" fillOpacity={0.05}/></AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* FORMULÁRIO DE ENVIO */}
-          <div style={{ textAlign: 'left', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '25px' }}>
-            <p style={{fontSize: '11px', fontWeight: 'bold', marginBottom: '15px'}}><Send size={14} /> QUICK SEND</p>
+          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '25px', textAlign: 'left' }}>
+            <p><Send size={14}/> QUICK SEND</p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <input placeholder="0x..." value={recipient} onChange={e => setRecipient(e.target.value)} style={{ flex: 2, padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-              <input placeholder="Amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1' }} />
-              <button onClick={handleTransfer} disabled={txLoading} style={{ padding: '0 20px', borderRadius: '12px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}>Send</button>
+              <input placeholder="Address" value={recipient} onChange={e => setRecipient(e.target.value)} style={{ flex: 2, padding: '12px', borderRadius: '10px' }} />
+              <input placeholder="Amt" type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: '10px' }} />
+              <button onClick={handleTransfer} style={{ padding: '0 20px', borderRadius: '10px', background: '#0f172a', color: '#fff' }}>Send</button>
             </div>
           </div>
 
-          {/* ENDEREÇO DA CONTA */}
-          <div style={{ background: '#0f172a', padding: '15px', borderRadius: '20px', textAlign: 'left' }}>
-            <span style={{ color: '#00cc6a', fontSize: '9px', fontWeight: 'bold' }}>MY ACCOUNT ADDRESS</span>
-            <code style={{ display: 'block', fontSize: '11px', color: '#fff', wordBreak: 'break-all', marginTop: '5px' }}>{walletAddress}</code>
+          <div style={{ background: '#0f172a', color: '#fff', padding: '15px', borderRadius: '20px', marginTop: '20px', textAlign: 'left' }}>
+            <small style={{ color: '#00cc6a' }}>MY ACCOUNT</small>
+            <code style={{ display: 'block', fontSize: '11px', wordBreak: 'break-all' }}>{walletAddress}</code>
           </div>
-          
-          <button onClick={logout} style={{ marginTop: '20px', color: '#ef4444', background: 'none', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: '20px auto' }}>
-            <LogOut size={16} /> Sign Out
-          </button>
+          <button onClick={logout} style={{ marginTop: '20px', border: 'none', background: 'none', color: 'red', cursor: 'pointer' }}><LogOut size={16}/> Sign Out</button>
         </div>
 
-        {/* DIREITA: INSIGHTS */}
-        <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)', padding: '25px', borderRadius: '30px', border: '1px solid #fff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-            <Zap size={18} color="#00cc6a" /> <b style={{fontSize: '13px'}}>NEURA INSIGHTS</b>
-          </div>
-          {INSIGHTS.map((info, i) => (
-            <div key={i} style={{ padding: '15px', background: '#fff', borderRadius: '15px', marginBottom: '12px', border: '1px solid #eef2f6' }}>
-              <p style={{ fontSize: '11px', color: '#1e293b', margin: 0 }}>{info.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* BARRA DE STATUS INFERIOR */}
-      <div style={{ maxWidth: '1600px', margin: '30px auto 0 auto', background: '#0f172a', padding: '18px 30px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00cc6a' }}><ShieldCheck size={18} /> <b style={{fontSize: '12px'}}>SYSTEM STATUS:</b></div>
-        <div style={{ display: 'flex', gap: '40px', color: '#94a3b8', fontSize: '11px' }}>
-          <span>● NETWORK: NEURA TESTNET</span>
-          <span>● RPC: CONNECTED (CORS ACTIVE)</span>
-          <span>● WALLET: EOA STANDARD</span>
+        <div style={{ background: 'rgba(255,255,255,0.7)', padding: '25px', borderRadius: '30px' }}>
+          <Zap size={18} color="#00cc6a" /> <b>INSIGHTS</b>
+          <p style={{ fontSize: '12px', marginTop: '10px' }}>Neura Network status is stable. Use faucet to get test tokens.</p>
         </div>
       </div>
     </div>
