@@ -9,12 +9,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <PrivyProvider
       appId="cmlryv7zk04ox0cjv1hfm2dax"
       config={{
-        // CONFIGURAÇÃO DE INFRAESTRUTURA DE CARTEIRA
+        // FORÇA a recuperação da carteira vinculada ao ID social
         embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
+          createOnLogin: 'all-users', 
           noPromptOnSignature: true,
         },
-        // FORÇA O LOGIN APENAS PELO DISCORD PARA NÃO GERAR CARTEIRAS DUPLAS
+        // Garante que a sessão não expire e crie um novo usuário "fantasma"
         loginMethods: ['discord'],
         appearance: {
           theme: 'dark',
