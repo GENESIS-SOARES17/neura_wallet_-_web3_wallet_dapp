@@ -7,10 +7,11 @@ import './index.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <PrivyProvider
-      appId="cmlryv7zk04ox0cjv1hfm2dax" // Sua API Key atualizada
+      appId="cmlryv7zk04ox0cjv1hfm2dax"
       config={{
+        // MUDANÇA CRUCIAL: 'all-users' garante que o Privy tente recuperar a carteira vinculada
         embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
+          createOnLogin: 'all-users',
           noPromptOnSignature: false,
         },
         appearance: {
