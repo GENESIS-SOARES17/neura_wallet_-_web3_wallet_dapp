@@ -9,17 +9,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <PrivyProvider
       appId="cmlryv7zk04ox0cjv1hfm2dax"
       config={{
-        // MUDANÇA CRUCIAL: 'all-users' garante que o Privy tente recuperar a carteira vinculada
+        // CONFIGURAÇÃO DE INFRAESTRUTURA DE CARTEIRA
         embeddedWallets: {
-          createOnLogin: 'all-users',
-          noPromptOnSignature: false,
+          createOnLogin: 'users-without-wallets',
+          noPromptOnSignature: true,
         },
+        // FORÇA O LOGIN APENAS PELO DISCORD PARA NÃO GERAR CARTEIRAS DUPLAS
+        loginMethods: ['discord'],
         appearance: {
-          theme: 'light',
+          theme: 'dark',
           accentColor: '#00cc6a',
-          showWalletLoginFirst: false,
         },
-        loginMethods: ['discord', 'email', 'google'],
       }}
     >
       <App />
